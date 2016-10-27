@@ -62,8 +62,15 @@ def seasonal_maps(time, dir = '.'):
     try:
       obl = planet.Obliquity[np.where(body.Time==time)[0]]
     except:
-      obl = out.lo
-    ecc = planet.Eccentricity[np.where(planet.Time==time)[0]]
+      obl = getattr(output.log.initial,plname).Obliquity
+      if obl.unit == 'rad':
+        obl *= 180/np.pi
+
+    try:
+      ecc = planet.Eccentricity[np.where(planet.Time==time)[0]]
+    except:
+      ecc = 0
+      
     try:
       longp = (planet.LongP+planet.PrecA)[np.where(planet.Time==time)[0]]
     except:
