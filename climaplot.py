@@ -69,12 +69,21 @@ def seasonal_maps(time, dir = '.'):
     try:
       ecc = planet.Eccentricity[np.where(planet.Time==time)[0]]
     except:
-      ecc = 0
+      ecc = getattr(output.log.initial,plname).Eccentricity
       
     try:
       longp = (planet.LongP+planet.PrecA)[np.where(planet.Time==time)[0]]
     except:
-      longp = 0
+      try:
+        longp = getattr(output.log.initial,plname).LongP
+      except:
+        try:
+          longp = (getattr(output.log.initial,plname).LongA+getattr(out.log.initial,plname).ArgP)
+          if longp.unit == 'rad':
+            longp *= 180/np.pi
+          longp = longp%360
+        except:
+          longp = 0
 
     fig = plt.figure(figsize=(16,6))
     fig.suptitle('Time = %f, Obl = %f, Ecc = %f, LongP = %f'%(time,obl,ecc,longp),fontsize=20)
