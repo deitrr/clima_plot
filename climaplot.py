@@ -88,27 +88,27 @@ def seasonal_maps(time, dir = '.'):
     fig = plt.figure(figsize=(16,6))
     fig.suptitle('Time = %f, Obl = %f, Ecc = %f, LongP = %f'%(time,obl,ecc,longp),fontsize=20)
     plt.subplot(1,3,1)
-    plt.title('insolation [W/m^2] (1 orbit)',fontsize=12)
+    plt.title(r'Insolation [W/m$^2$] (1 orbit)',fontsize=12)
     c1=plt.contourf(range(np.shape(insol)[1]),lats,insol,cmap='plasma')
     plt.colorbar(c1)
     plt.ylim(lats[0],lats[-1])
     
     plt.subplot(1,3,2)
     c2=plt.contourf(range(np.shape(temp)[1]),lats,temp,cmap='plasma')
-    plt.title('surface temp [C] (4 orbits)',fontsize=12)
+    plt.title(r'Surface Temp [$^{\circ}$C] (4 orbits)',fontsize=12)
     plt.colorbar(c2)
     plt.ylim(lats[0],lats[-1])
     
     plt.subplot(1,3,3)
     c3=plt.contourf(range(np.shape(ice)[1]),lats,ice,cmap='Blues_r')
-    plt.title('ice balance [kg/m^2/s] (1 orbit)',fontsize=12)
+    plt.title(r'Ice balance [kg/m$^2$/s] (1 orbit)',fontsize=12)
     plt.colorbar(c3)
     plt.ylim(lats[0],lats[-1])
     
     plt.savefig('surf_seas_%.0f.pdf'%time)
     plt.close()
     
-def clim_evol(plname,dir='.',xrange=False):
+def clim_evol(plname,dir='.',xrange=False,orbit=False):
   out = vplot.GetOutput(dir)
   
   ctmp = 0
@@ -123,7 +123,7 @@ def clim_evol(plname,dir='.',xrange=False):
   try:
     ecc = body.Eccentricity
   except:
-    ecc = np.zeros_like(body.Time)
+    ecc = np.zeros_like(body.Time)+getattr(out.log.initial,plname).Eccentricity
     
   try:
     inc = body.Inc
@@ -133,7 +133,10 @@ def clim_evol(plname,dir='.',xrange=False):
   try:
     obl = body.Obliquity
   except:
-    obl = np.zeros_like(body.Time)
+    obltmp = getattr(out.log.initial,plname).Obliquity
+    if obltmp.unit == 'rad':
+      obltmp *= 180/np.pi
+    obl = np.zeros_like(body.Time)+obltmp
 
   f = open(dir+'/'+plname+'.in','r')
   lines = f.readlines()
@@ -150,8 +153,11 @@ def clim_evol(plname,dir='.',xrange=False):
     
   esinv = ecc*np.sin(longp)*np.sin(obl*np.pi/180.)
 
-  fig = plt.figure(figsize=(16,12))
-  fig.suptitle('$e_0 = %f, i_0 = %f, \psi_0 = %f, P_{rot} = %f$'%(ecc[0],inc[0],obl[0],P)) 
+  if orbit == True:
+    fig = plt.figure(figsize=(16,12))
+  else:
+    fig = plt.figure(figsize=(10,14))
+  fig.suptitle('$e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d'%(ecc[0],inc[0],obl[0],P),fontsize=20) 
   fig.subplots_adjust(wspace=0.3)
 
   lats = np.unique(body.Latitude)
@@ -160,7 +166,10 @@ def clim_evol(plname,dir='.',xrange=False):
 
   # plot temperature
   temp = np.reshape(body.TempLat,(ntimes,nlats))
-  ax1 = plt.subplot(4,2,1)
+  if orbit == True:
+    ax1 = plt.subplot(4,2,1)
+  else:
+    ax1 = plt.subplot(5,1,1)
   pos = ax1.figbox.get_points()
   c = plt.contourf(body.Time,lats,temp.T,cmap='plasma')
   plt.ylabel('Latitude')
@@ -171,10 +180,12 @@ def clim_evol(plname,dir='.',xrange=False):
     plt.xlim(xrange)
   plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
   
-
   # plot albedo
   alb = np.reshape(body.AlbedoLat,(ntimes,nlats))
-  ax2 = plt.subplot(4,2,3)
+  if orbit == True:
+    ax2 = plt.subplot(4,2,3)
+  else:
+    ax2 = plt.subplot(5,1,3)
   pos = ax2.figbox.get_points()
   c = plt.contourf(body.Time,lats,alb.T,cmap='Blues_r')
   plt.ylabel('Latitude')
@@ -188,7 +199,10 @@ def clim_evol(plname,dir='.',xrange=False):
 
   # plot ice height
   ice = np.reshape(body.IceHeight,(ntimes,nlats))
-  ax3 = plt.subplot(4,2,5)
+  if orbit == True:
+    ax3 = plt.subplot(4,2,5)
+  else:
+    ax3 = plt.subplot(5,1,4)
   pos = ax3.figbox.get_points()
   c = plt.contourf(body.Time,lats,ice.T,cmap='Blues_r')
   plt.ylabel('Latitude')
@@ -205,7 +219,10 @@ def clim_evol(plname,dir='.',xrange=False):
 
   # plot bedrock
   brock = np.reshape(body.BedrockH,(ntimes,nlats))
-  ax4 = plt.subplot(4,2,7)
+  if orbit == True:
+    ax4 = plt.subplot(4,2,7)
+  else:
+    ax4 = plt.subplot(5,1,5)
   pos = ax4.figbox.get_points()
   c = plt.contourf(body.Time,lats,brock.T,cmap='Reds_r')
   plt.ylabel('Latitude')
@@ -220,7 +237,10 @@ def clim_evol(plname,dir='.',xrange=False):
 
   # plot insolation
   insol = np.reshape(body.AnnInsol,(ntimes,nlats))
-  ax5 = plt.subplot(4,2,2)
+  if orbit == True:
+    ax5 = plt.subplot(4,2,2)
+  else:
+    ax5 = plt.subplot(5,1,2)
   pos = ax5.figbox.get_points()
   c = plt.contourf(body.Time,lats,insol.T,cmap='plasma')
   plt.ylabel('Latitude')
@@ -231,28 +251,28 @@ def clim_evol(plname,dir='.',xrange=False):
     plt.xlim(xrange)
   plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
 
+  if orbit == True:
+    #obliquity
+    plt.subplot(4,2,4)
+    plt.plot(body.Time,obl,linestyle = 'solid',marker='None',color='darkblue',linewidth =2)
+    plt.ylabel('Obliquity')
+    if xrange:
+      plt.xlim(xrange)
 
-  #obliquity
-  plt.subplot(4,2,4)
-  plt.plot(body.Time,obl,linestyle = 'solid',marker='None',color='darkblue',linewidth =2)
-  plt.ylabel('Obliquity')
-  if xrange:
-    plt.xlim(xrange)
+    #eccentricity
+    plt.subplot(4,2,6)
+    plt.plot(body.Time,ecc,linestyle = 'solid',marker='None',color='darkorchid',linewidth =2)
+    plt.ylabel('Eccentricity')
+    if xrange:
+      plt.xlim(xrange)
 
-  #eccentricity
-  plt.subplot(4,2,6)
-  plt.plot(body.Time,ecc,linestyle = 'solid',marker='None',color='darkorchid',linewidth =2)
-  plt.ylabel('Eccentricity')
-  if xrange:
-    plt.xlim(xrange)
-
-  #e sin(obl) sin varpi
-  plt.subplot(4,2,8)
-  plt.plot(body.Time,esinv,linestyle = 'solid',marker='None',color='salmon',linewidth=2)
-  plt.ylabel('COPP')
-  plt.xlabel('Time [years]')
-  if xrange:
-    plt.xlim(xrange)
+    #e sin(obl) sin varpi
+    plt.subplot(4,2,8)
+    plt.plot(body.Time,esinv,linestyle = 'solid',marker='None',color='salmon',linewidth=2)
+    plt.ylabel('COPP')
+    plt.xlabel('Time [years]')
+    if xrange:
+      plt.xlim(xrange)
 
   if dir == '.':
     dir = 'cwd'
@@ -265,8 +285,7 @@ def clim_evol(plname,dir='.',xrange=False):
   plt.close()
 
 
-
-def tempminmax(plname,dir='.',xrange=False):
+def tempminmax(plname,dir='.',xrange=False,orbit=False):
   out = vplot.GetOutput(dir)
   
   for p in range(len(out.bodies)):
@@ -280,7 +299,7 @@ def tempminmax(plname,dir='.',xrange=False):
   try:
     ecc = body.Eccentricity
   except:
-    ecc = np.zeros_like(body.Time)
+    ecc = np.zeros_like(body.Time)+getattr(out.log.initial,plname).Eccentricity
     
   try:
     inc = body.Inc
@@ -290,7 +309,10 @@ def tempminmax(plname,dir='.',xrange=False):
   try:
     obl = body.Obliquity
   except:
-    obl = np.zeros_like(body.Time)
+    obltmp = getattr(out.log.initial,plname).Obliquity
+    if obltmp.unit == 'rad':
+      obltmp *= 180/np.pi
+    obl = np.zeros_like(body.Time)+obltmp
 
   f = open(dir+'/'+plname+'.in','r')
   lines = f.readlines()
@@ -307,8 +329,11 @@ def tempminmax(plname,dir='.',xrange=False):
     
   esinv = ecc*np.sin(longp)*np.sin(obl*np.pi/180.)
 
-  fig = plt.figure(figsize=(16,12))
-  fig.suptitle('$e_0 = %f, i_0 = %f, \psi_0 = %f, P_{rot} = %f$'%(ecc[0],inc[0],obl[0],P)) 
+  if orbit == True:
+    fig = plt.figure(figsize=(16,12))
+  else:
+    fig = plt.figure(figsize=(10,12))
+  fig.suptitle('$e_0 = %f, i_0 = %f, \psi_0 = %f, P_{rot} = %f$'%(ecc[0],inc[0],obl[0],P),fontsize=20) 
   fig.subplots_adjust(wspace=0.3)
 
   lats = np.unique(body.Latitude)
@@ -322,11 +347,14 @@ def tempminmax(plname,dir='.',xrange=False):
   
   
   temp = np.reshape(body.TempLat,(ntimes,nlats))
-  ax1 = plt.subplot(3,2,1)
+  if orbit == True:
+    ax1 = plt.subplot(3,2,1)
+  else:
+    ax1 = plt.subplot(3,1,1)
   pos = ax1.figbox.get_points()
   c = plt.contourf(body.Time,lats,temp.T,cmap='plasma',norm = norm)
   plt.ylabel('Latitude')
-  plt.title('Surface Temp [K]')
+  plt.title('Surface Temp [$^{\circ}$C]')
   plt.ylim(-90,90)
   plt.yticks([-60,-30,0,30,60])
   if xrange:
@@ -334,11 +362,14 @@ def tempminmax(plname,dir='.',xrange=False):
   plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
   
   tempmin = np.reshape(body.TempMinLat,(ntimes,nlats))
-  ax3 = plt.subplot(3,2,3)
+  if orbit == True:
+    ax3 = plt.subplot(3,2,3)
+  else:
+    ax3 = plt.subplot(3,1,2)
   pos = ax3.figbox.get_points()
   c = plt.contourf(body.Time,lats,tempmin.T,cmap='plasma',norm = norm)
   plt.ylabel('Latitude')
-  plt.title('Min annual surface Temp [K]')
+  plt.title('Min annual surface Temp [$^{\circ}$C]')
   plt.ylim(-90,90)
   plt.yticks([-60,-30,0,30,60])
   if xrange:
@@ -346,38 +377,45 @@ def tempminmax(plname,dir='.',xrange=False):
   plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
   
   tempmax = np.reshape(body.TempMaxLat,(ntimes,nlats))
-  ax5 = plt.subplot(3,2,5)
+  if orbit == True:
+    ax5 = plt.subplot(3,2,5)
+  else:
+    ax5 = plt.subplot(3,1,3)
   pos = ax5.figbox.get_points()
   c = plt.contourf(body.Time,lats,tempmax.T,cmap='plasma',norm = norm)
   plt.ylabel('Latitude')
-  plt.title('Max annual surface Temp [K]')
+  plt.title('Max annual surface Temp [$^{\circ}$C]')
   plt.ylim(-90,90)
   plt.yticks([-60,-30,0,30,60])
   if xrange:
     plt.xlim(xrange)
   plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
   
-  #obliquity
-  plt.subplot(3,2,2)
-  plt.plot(body.Time,obl,linestyle = 'solid',marker='None',color='darkblue',linewidth =2)
-  plt.ylabel('Obliquity')
-  if xrange:
-    plt.xlim(xrange)
+  if orbit == True:
+    #obliquity
+    plt.subplot(3,2,2)
+    plt.plot(body.Time,obl,linestyle = 'solid',marker='None',color='darkblue',linewidth =2)
+    plt.ylabel('Obliquity')
+    if xrange:
+      plt.xlim(xrange)
 
-  #eccentricity
-  plt.subplot(3,2,4)
-  plt.plot(body.Time,ecc,linestyle = 'solid',marker='None',color='darkorchid',linewidth =2)
-  plt.ylabel('Eccentricity')
-  if xrange:
-    plt.xlim(xrange)
+    #eccentricity
+    plt.subplot(3,2,4)
+    plt.plot(body.Time,ecc,linestyle = 'solid',marker='None',color='darkorchid',linewidth =2)
+    plt.ylabel('Eccentricity')
+    if xrange:
+      plt.xlim(xrange)
 
-  #e sin(obl) sin varpi
-  plt.subplot(3,2,6)
-  plt.plot(body.Time,esinv,linestyle = 'solid',marker='None',color='salmon',linewidth=2)
-  plt.ylabel('COPP')
-  plt.xlabel('Time [years]')
-  if xrange:
-    plt.xlim(xrange)
+    #e sin(obl) sin varpi
+    plt.subplot(3,2,6)
+    plt.plot(body.Time,esinv,linestyle = 'solid',marker='None',color='salmon',linewidth=2)
+    plt.ylabel('COPP')
+    plt.xlabel('Time [years]')
+    if xrange:
+      plt.xlim(xrange)
+
+  if dir == '.':
+    dir = 'cwd'
 
   if xrange:
     sfile = 'temp_'+dir+'_%d_%d.pdf'%(xrange[0],xrange[1])
