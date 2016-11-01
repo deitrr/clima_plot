@@ -17,6 +17,25 @@ vpldbl = '#1321D8'
 vplpur = '#642197'
 
 def seasonal_maps(time, dir = '.'):
+  """
+  Creates plots of insolation, temperature, and ice balance
+  over the course of an orbit (4 orbits for temp)
+  
+  Parameters
+  ----------
+  time : float
+    The time of the data you want to plot (see SeasonalClimateFiles directory)
+    
+  Keyword Arguments
+  -----------------
+  dir : string
+    Directory of vplanet simulation (default = '.')
+  
+  Output
+  ------
+  PDF format plot with name 'surf_seas_<time>.pdf'
+  
+  """
   dirf = dir+'/SeasonalClimateFiles'
   if not os.path.exists(dirf):
     raise StandardError('SeasonalClimateFiles directory does not exist')
@@ -109,6 +128,32 @@ def seasonal_maps(time, dir = '.'):
     plt.close()
     
 def clim_evol(plname,dir='.',xrange=False,orbit=False):
+  """
+  Creates plots of insolation, temperature, albedo, ice mass,
+  and bed rock height over the length of the simulation
+  
+  Parameters
+  ----------
+  plname : string
+    The name of the planet with .Climate data
+    
+  Keyword Arguments
+  -----------------
+  dir : string
+    Directory of vplanet simulation (default = '.')
+  xrange : float tuple, list, or numpy array
+    Range of x-values (time) to restrict plot
+    (default = False (no restriction))
+  orbit : bool
+    Plot orbital data (obliquity, eccentricity, COPP)
+    (default = False)
+  
+  Output
+  ------
+  PDF format plot with name 'evol_<dir>.pdf'
+  
+  """
+
   out = vplot.GetOutput(dir)
   
   ctmp = 0
@@ -286,6 +331,32 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False):
 
 
 def tempminmax(plname,dir='.',xrange=False,orbit=False):
+  """
+  Creates plots of average temperature, min temp, and max temp
+  over the length of the simulation
+  
+  Parameters
+  ----------
+  plname : string
+    The name of the planet with .Climate data
+    
+  Keyword Arguments
+  -----------------
+  dir : string
+    Directory of vplanet simulation (default = '.')
+  xrange : float tuple, list, or numpy array
+    Range of x-values (time) to restrict plot
+    (default = False (no restriction))
+  orbit : bool
+    Plot orbital data (obliquity, eccentricity, COPP)
+    (default = False)
+  
+  Output
+  ------
+  PDF format plot with name 'evol_<dir>.pdf'
+  
+  """
+
   out = vplot.GetOutput(dir)
   
   for p in range(len(out.bodies)):
