@@ -16,7 +16,7 @@ vpllbl = '#13AED5'
 vpldbl = '#1321D8'
 vplpur = '#642197'
 
-def seasonal_maps(time, dir = '.'):
+def seasonal_maps(time, dir = '.', show = True):
   """
   Creates plots of insolation, temperature, and ice balance
   over the course of an orbit (4 orbits for temp)
@@ -30,6 +30,8 @@ def seasonal_maps(time, dir = '.'):
   -----------------
   dir : string
     Directory of vplanet simulation (default = '.')
+  show : bool
+    Show plot in Python (default = True)
   
   Output
   ------
@@ -108,26 +110,34 @@ def seasonal_maps(time, dir = '.'):
     fig.suptitle('Time = %f, Obl = %f, Ecc = %f, LongP = %f'%(time,obl,ecc,longp),fontsize=20)
     plt.subplot(1,3,1)
     plt.title(r'Insolation [W/m$^2$] (1 orbit)',fontsize=12)
-    c1=plt.contourf(range(np.shape(insol)[1]),lats,insol,cmap='plasma')
+    c1=plt.contourf(np.arange(np.shape(insol)[1]),lats,insol,cmap='plasma')
     plt.colorbar(c1)
     plt.ylim(lats[0],lats[-1])
+    plt.ylabel('Latitude (degrees)')
     
+    scale = 4*np.shape(insol)[1]/np.shape(temp)[1]
     plt.subplot(1,3,2)
-    c2=plt.contourf(range(np.shape(temp)[1]),lats,temp,cmap='plasma')
+    c2=plt.contourf(np.arange(np.shape(temp)[1])*scale,lats,temp,cmap='plasma')
     plt.title(r'Surface Temp [$^{\circ}$C] (4 orbits)',fontsize=12)
     plt.colorbar(c2)
     plt.ylim(lats[0],lats[-1])
+    plt.ylabel('Latitude (degrees)')
     
+    scale = np.shape(insol)[1]/np.shape(ice)[1]
     plt.subplot(1,3,3)
-    c3=plt.contourf(range(np.shape(ice)[1]),lats,ice,cmap='Blues_r')
+    c3=plt.contourf(np.arange(np.shape(ice)[1])*scale,lats,ice,cmap='Blues_r')
     plt.title(r'Ice balance [kg/m$^2$/s] (1 orbit)',fontsize=12)
     plt.colorbar(c3)
     plt.ylim(lats[0],lats[-1])
+    plt.ylabel('Latitude (degrees)')
     
     plt.savefig('surf_seas_%.0f.pdf'%time)
-    plt.close()
-    
-def clim_evol(plname,dir='.',xrange=False,orbit=False):
+    if show:
+      plt.show()
+    else:
+      plt.close()
+
+def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
   """
   Creates plots of insolation, temperature, albedo, ice mass,
   and bed rock height over the length of the simulation
@@ -147,6 +157,8 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False):
   orbit : bool
     Plot orbital data (obliquity, eccentricity, COPP)
     (default = False)
+  show : bool
+    Show plot in Python (default = True)
   
   Output
   ------
@@ -158,8 +170,12 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False):
   
   nfiles = len(dir)
 
+  if orbit == True:
+    fig = plt.figure(figsize=(16,12))
+  else:
+    fig = plt.figure(figsize=(10*nfiles,14))
+
   for ii in np.arange(nfiles):
-    pdb.set_trace()
     out = vplot.GetOutput(dir[ii])
   
     ctmp = 0
@@ -204,18 +220,13 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False):
     
     esinv = ecc*np.sin(longp)*np.sin(obl*np.pi/180.)
 
-    if orbit == True:
-      fig = plt.figure(figsize=(16,12))
-    else:
-      fig = plt.figure(figsize=(10,14))
-    fig.suptitle('$e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d'%(ecc[0],inc[0],obl[0],P),fontsize=20) 
+    fig.suptitle(r'$e_0 = %f, i_0 = %f^{\circ}, \n \psi_0 = %f^{\circ}, P_{rot} = %f$ d'%(ecc[0],inc[0],obl[0],P),fontsize=20) 
     fig.subplots_adjust(wspace=0.3)
 
     lats = np.unique(body.Latitude)
     nlats = len(lats)
     ntimes = len(body.Time)
     
-    pdb.set_trace()
     # plot temperature
     temp = np.reshape(body.TempLat,(ntimes,nlats))
     if orbit == True:
@@ -329,15 +340,20 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False):
     if dir[ii] == '.':
       dir[ii] = 'cwd'
   
-    if xrange:
-      sfile = 'evol_'+dir[ii]+'_%d_%d.pdf'%(xrange[0],xrange[1])
-    else:
-      sfile = 'evol_'+dir[ii]+'.pdf'
-    plt.savefig(sfile)
+
+  if xrange:
+    sfile = 'evol_'+'_'.join(dir)+'_%d_%d.pdf'%(xrange[0],xrange[1])
+  else:
+    sfile = 'evol_'+'_'.join(dir)+'.pdf'
+  plt.savefig(sfile)
+
+  if show:
+    plt.show()
+  else:
     plt.close()
 
 
-def tempminmax(plname,dir='.',xrange=False,orbit=False):
+def tempminmax(plname,dir='.',xrange=False,orbit=False,show=True):
   """
   Creates plots of average temperature, min temp, and max temp
   over the length of the simulation
@@ -357,6 +373,8 @@ def tempminmax(plname,dir='.',xrange=False,orbit=False):
   orbit : bool
     Plot orbital data (obliquity, eccentricity, COPP)
     (default = False)
+  show : bool
+    Show plot in Python (default = True)
   
   Output
   ------
@@ -500,4 +518,7 @@ def tempminmax(plname,dir='.',xrange=False,orbit=False):
   else:
     sfile = 'temp_'+dir+'.pdf'
   plt.savefig(sfile)
-  plt.close()
+  if show:
+    plt.show()
+  else:
+    plt.close()
