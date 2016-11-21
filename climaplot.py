@@ -201,7 +201,11 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
   for i in range(len(lines)):
     if lines[i].split() != []:
       if lines[i].split()[0] == 'dRotPeriod':
-        P = -1*np.float(lines[i].split()[1])  
+        P = -1*np.float(lines[i].split()[1]) 
+      if lines[i].split()[0] == 'dSemi':
+        semi = -1*np.float(lines[i].split()[1]) 
+      if lines[i].split()[0] == 'dpCO2':
+        pco2 = -1*np.float(lines[i].split()[1]) 
 
   try:
     longp = (body.ArgP + body.LongA + body.PrecA)*np.pi/180.0
@@ -214,7 +218,7 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     fig = plt.figure(figsize=(16,12))
   else:
     fig = plt.figure(figsize=(10,14))
-  fig.suptitle('$e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d'%(ecc[0],inc[0],obl[0],P),fontsize=20) 
+  fig.suptitle('$a = %f, e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d, $pCO_2 = %f$'%(semi,ecc[0],inc[0],obl[0],P,pco2),fontsize=20) 
   fig.subplots_adjust(wspace=0.3)
 
   lats = np.unique(body.Latitude)
