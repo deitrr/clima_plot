@@ -177,11 +177,11 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
   titlestr = []
 
   if orbit == True:
-    fig = plt.figure(figsize=(16,12))
+    fig = plt.figure(figsize=(16,13))
   else:
-    fig = plt.figure(figsize=(10,14))
+    fig = plt.figure(figsize=(10*nfiles,15))
 
-  fig.subplots_adjust(wspace=0.3)
+  fig.subplots_adjust(wspace=0.3,top=0.9)
 
 
   for ii in np.arange(nfiles):
