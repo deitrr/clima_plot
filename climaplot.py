@@ -174,7 +174,7 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
   if nfiles > 1 and orbit == True:
     raise Exception("Error: cannot plot multiple files when orbit = True")
   
-  titlestr = []
+  
 
   if orbit == True:
     fig = plt.figure(figsize=(16,13))
@@ -223,7 +223,9 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
         if lines[i].split()[0] == 'dRotPeriod':
           P = -1*np.float(lines[i].split()[1]) 
         if lines[i].split()[0] == 'dSemi':
-          semi = -1*np.float(lines[i].split()[1]) 
+          semi = np.float(lines[i].split()[1]) 
+          if semi < 0:
+            semi *= -1
         if lines[i].split()[0] == 'dpCO2':
           pco2 = np.float(lines[i].split()[1])
 
@@ -233,7 +235,8 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
       longp = body.PrecA*np.pi/180.0
     
     esinv = ecc*np.sin(longp)*np.sin(obl*np.pi/180.)
-
+    
+    titlestr = []
     titlestr.append(r'$a = %f, pCO_2 = %f$'%(semi,pco2))
     titlestr.append(r'$e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d'%(ecc[0],inc[0],obl[0],P))
     fig.subplots_adjust(wspace=0.3)
@@ -254,6 +257,7 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     plt.title(r'Surface Temp [$^{\circ}$C]')
     plt.ylim(-90,90)
     plt.yticks([-60,-30,0,30,60])
+    plt.text(0,140,'\n'.join(titlestr),fontsize=20) 
     if xrange:
       plt.xlim(xrange)
     plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
@@ -355,7 +359,7 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     if dir[ii] == '.':
       dir[ii] = 'cwd'
   
-  fig.suptitle('\n'.join(titlestr),fontsize=20) 
+  #fig.suptitle('\n'.join(titlestr),fontsize=20) 
   
   if xrange:
     sfile = 'evol_'+'_'.join(dir)+'_%d_%d.pdf'%(xrange[0],xrange[1])
