@@ -176,48 +176,11 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
   
   titlestr = []
 
-  try:
-    ecc = body.Eccentricity
-  except:
-    ecc = np.zeros_like(body.Time)+getattr(out.log.initial,plname).Eccentricity
-    
-  try:
-    inc = body.Inc
-  except:
-    inc = np.zeros_like(body.Time)
-    
-  try:
-    obl = body.Obliquity
-  except:
-    obltmp = getattr(out.log.initial,plname).Obliquity
-    if obltmp.unit == 'rad':
-      obltmp *= 180/np.pi
-    obl = np.zeros_like(body.Time)+obltmp
-
-  f = open(dir+'/'+plname+'.in','r')
-  lines = f.readlines()
-  f.close()
-  for i in range(len(lines)):
-    if lines[i].split() != []:
-      if lines[i].split()[0] == 'dRotPeriod':
-        P = -1*np.float(lines[i].split()[1]) 
-      if lines[i].split()[0] == 'dSemi':
-        semi = -1*np.float(lines[i].split()[1]) 
-      if lines[i].split()[0] == 'dpCO2':
-        pco2 = -1*np.float(lines[i].split()[1]) 
-
-  try:
-    longp = (body.ArgP + body.LongA + body.PrecA)*np.pi/180.0
-  except:
-    longp = body.PrecA*np.pi/180.0
-    
-  esinv = ecc*np.sin(longp)*np.sin(obl*np.pi/180.)
-
   if orbit == True:
     fig = plt.figure(figsize=(16,12))
   else:
     fig = plt.figure(figsize=(10,14))
-  fig.suptitle('$a = %f, e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d, $pCO_2 = %f$'%(semi,ecc[0],inc[0],obl[0],P,pco2),fontsize=20) 
+
   fig.subplots_adjust(wspace=0.3)
 
 
@@ -254,10 +217,15 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     f = open(dir[ii]+'/'+plname+'.in','r')
     lines = f.readlines()
     f.close()
+    #pdb.set_trace()
     for i in range(len(lines)):
       if lines[i].split() != []:
         if lines[i].split()[0] == 'dRotPeriod':
-          P = -1*np.float(lines[i].split()[1])  
+          P = -1*np.float(lines[i].split()[1]) 
+        if lines[i].split()[0] == 'dSemi':
+          semi = -1*np.float(lines[i].split()[1]) 
+        if lines[i].split()[0] == 'dpCO2':
+          pco2 = np.float(lines[i].split()[1])
 
     try:
       longp = (body.ArgP + body.LongA + body.PrecA)*np.pi/180.0
@@ -266,6 +234,7 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     
     esinv = ecc*np.sin(longp)*np.sin(obl*np.pi/180.)
 
+    titlestr.append(r'$a = %f, pCO_2 = %f$'%(semi,pco2))
     titlestr.append(r'$e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d'%(ecc[0],inc[0],obl[0],P))
     fig.subplots_adjust(wspace=0.3)
 
