@@ -257,7 +257,11 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     plt.title(r'Surface Temp [$^{\circ}$C]')
     plt.ylim(-90,90)
     plt.yticks([-60,-30,0,30,60])
-    plt.text(0,140,'\n'.join(titlestr),fontsize=20) 
+    if xrange == False:
+      left = 0
+    else:
+      left = xrange[0]
+    plt.text(left,140,'\n'.join(titlestr),fontsize=20) 
     if xrange:
       plt.xlim(xrange)
     plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
