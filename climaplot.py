@@ -121,10 +121,11 @@ def seasonal_maps(time, dir = '.', show = True):
     scale = 4*np.shape(insol)[1]/np.shape(temp)[1]
     plt.subplot(2,2,2)
     c2=plt.contourf(np.arange(np.shape(temp)[1])*scale,lats,temp,cmap='plasma')
-    plt.title(r'Surface Temp [$^{\circ}$C] (4 orbits)',fontsize=12)
+    plt.title(r'Surface Temp [$^{\circ}$C] (1 orbit)',fontsize=12)
     plt.colorbar(c2)
     plt.ylim(lats[0],lats[-1])
     plt.ylabel('Latitude (degrees)')
+    plt.xlim(0,np.shape(temp)[1]*scale/4.)
     
     scale = np.shape(insol)[1]/np.shape(ice)[1]
     plt.subplot(2,2,3)
