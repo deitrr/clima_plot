@@ -61,6 +61,7 @@ def seasonal_maps(time, dir = '.', show = True):
         insolf = dirf+'/'+sysname+'.'+plname+'.DailyInsol.'+timestamp
         tempf = dirf+'/'+sysname+'.'+plname+'.SeasonalTemp.'+timestamp
         icef = dirf+'/'+sysname+'.'+plname+'.SeasonalIceBalance.'+timestamp
+        planckbf = dirf+'/'+sysname+'.'+plname+'.PlanckB.'+timestamp
         check = 1
         
     if check == 0:
@@ -69,6 +70,7 @@ def seasonal_maps(time, dir = '.', show = True):
     insol = np.loadtxt(insolf,unpack=True)
     temp = np.loadtxt(tempf,unpack=True)
     ice = np.loadtxt(icef,unpack=True)
+    planckb = np.loadtxt(planckbf,unpack=True)
     output = vplot.GetOutput(dir)
 
     ctmp = 0
@@ -107,9 +109,9 @@ def seasonal_maps(time, dir = '.', show = True):
         except:
           longp = 0
 
-    fig = plt.figure(figsize=(16,6))
+    fig = plt.figure(figsize=(10,10))
     fig.suptitle('Time = %f, Obl = %f, Ecc = %f, LongP = %f'%(time,obl,ecc,longp),fontsize=20)
-    plt.subplot(1,3,1)
+    plt.subplot(2,2,1)
     plt.title(r'Insolation [W/m$^2$] (1 orbit)',fontsize=12)
     c1=plt.contourf(np.arange(np.shape(insol)[1]),lats,insol,cmap='plasma')
     plt.colorbar(c1)
@@ -117,7 +119,7 @@ def seasonal_maps(time, dir = '.', show = True):
     plt.ylabel('Latitude (degrees)')
     
     scale = 4*np.shape(insol)[1]/np.shape(temp)[1]
-    plt.subplot(1,3,2)
+    plt.subplot(2,2,2)
     c2=plt.contourf(np.arange(np.shape(temp)[1])*scale,lats,temp,cmap='plasma')
     plt.title(r'Surface Temp [$^{\circ}$C] (4 orbits)',fontsize=12)
     plt.colorbar(c2)
@@ -125,10 +127,18 @@ def seasonal_maps(time, dir = '.', show = True):
     plt.ylabel('Latitude (degrees)')
     
     scale = np.shape(insol)[1]/np.shape(ice)[1]
-    plt.subplot(1,3,3)
+    plt.subplot(2,2,3)
     c3=plt.contourf(np.arange(np.shape(ice)[1])*scale,lats,ice,cmap='Blues_r')
     plt.title(r'Ice balance [kg/m$^2$/s] (1 orbit)',fontsize=12)
     plt.colorbar(c3)
+    plt.ylim(lats[0],lats[-1])
+    plt.ylabel('Latitude (degrees)')
+    
+    scale = 4*np.shape(insol)[1]/np.shape(temp)[1]
+    plt.subplot(2,2,4)
+    c2=plt.contourf(np.arange(np.shape(temp)[1])*scale,lats,planckb,cmap='plasma')
+    plt.title(r'Planck Coeff B [W m$^{-2}$ C$^{-1}$] (4 orbits)',fontsize=12)
+    plt.colorbar(c2)
     plt.ylim(lats[0],lats[-1])
     plt.ylabel('Latitude (degrees)')
     
