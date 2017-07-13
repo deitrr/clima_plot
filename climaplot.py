@@ -951,3 +951,132 @@ def flux_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     plt.show()
   else:
     plt.close()
+
+def ice_lats(time, lat, iceh):
+  icelatsouth = np.zeros(len(time))
+  icelatnorth = np.zeros(len(time))
+  
+  for i in range(len(time)):
+    ice = lat[i][iceh[i]>0]
+    if len(ice[ice<0]) != 0:
+      icelatsouth[i] = np.max(ice[ice<0])
+    else:
+      icelatsouth[i] = -90
+    if len(ice[ice>0]) != 0:   
+      icelatnorth[i] = np.min(ice[ice>0])
+    else:
+      icelatnorth[i] = 90
+  
+  return icelatsouth, icelatnorth
+
+def ice_fft(plname,dir='.',log = False):
+  out = vplot.GetOutput(dir)
+
+  icelatsouth, icelatnorth = ice_lats(out.p02.Time, out.p02.Latitude, out.p02.IceHeight)
+  n65 = np.where(np.abs(out.p02.Latitude[0]-65)==np.min(np.abs(out.p02.Latitude[0]-65)))[0]
+  s65 = np.where(np.abs(out.p02.Latitude[0]+65)==np.min(np.abs(out.p02.Latitude[0]+65)))[0]
+  icehsouth = out.p02.IceHeight[:,s65[0]]
+  icehnorth = out.p02.IceHeight[:,n65[0]]
+
+  #----ice data periodogramaphones----------------  
+  #datasouth = icelatsouth[50:]-np.mean(icelatsouth[50:])
+  #datanorth = icelatnorth[50:]-np.mean(icelatnorth[50:])
+  datasouth = icehsouth[50:]-np.mean(icehsouth[50:])
+  datanorth = icehnorth[50:]-np.mean(icehnorth[50:])
+  datatotal = out.p02.TotIceMass[50:] - np.mean(out.p02.TotIceMass[50:])
+  
+  freqs, powsouth = sig.periodogram(datasouth,fs=0.001,window='bartlett')
+  freqs, pownorth = sig.periodogram(datanorth,fs=0.001,window='bartlett')
+  freqs, powtotal = sig.periodogram(datatotal,fs=0.001,window='bartlett')
+
+  powsouth *= 1./np.max(powsouth)
+  pownorth *= 1./np.max(pownorth)
+  powtotal *= 1./np.max(powtotal)
+  
+  #----milankovitch data periodododoodoo-----------
+  dataobliq = out.p02.Obliquity - np.mean(out.p02.Obliquity)
+  dataeccen = out.p02.Eccentricity - np.mean(out.p02.Eccentricity)
+  COPP = out.p02.Eccentricity*np.sin(out.p02.Obliquity*np.pi/180.0) *np.sin((out.p02.ArgP+out.p02.LongA+out.p02.PrecA)*np.pi/180.0)  
+#   COPP = out.p02.Eccentricity *np.sin((out.p02.ArgP+out.p02.LongA+out.p02.PrecA)*np.pi/180.0)  
+  datacopp = COPP - np.mean(COPP)
+  
+  freqs0, powobliq = sig.periodogram(dataobliq,fs=0.001,window='bartlett')
+  freqs0, poweccen = sig.periodogram(dataeccen,fs=0.001,window='bartlett')
+  freqs0, powcopp = sig.periodogram(datacopp,fs=0.001,window='bartlett')
+
+  powobliq *= 1./np.max(powobliq)
+  poweccen *= 1./np.max(poweccen)
+  powcopp *= 1./np.max(powcopp)
+  #-------------------------------------------
+  
+  period = 1./freqs
+  period0 = 1./freqs0
+  ys = [-0.2, 100]
+  eccxs = [1,1]*period0[poweccen ==np.max(poweccen)]
+  eccxs1 = [1,1]*period0[poweccen ==np.max(poweccen[period0<30000])]
+  oblxs = [1,1]*period0[powobliq == np.max(powobliq)]
+  coppxs0 = [1,1]*period0[powcopp == np.max(powcopp)]
+  coppxs1 = [1,1]*period0[powcopp == np.max(powcopp[powcopp<.99])]
+#   import pdb;pdb.set_trace()
+
+  fig = plt.figure(figsize=(10,8))
+  fig.subplots_adjust(hspace=0.0)
+  ax1= plt.subplot(3,1,1)
+  plt.semilogx(period,powsouth,linestyle='--',color=vplorg,marker='None',lw=2,label=r'Ice height (65$^{\circ}$ S)',zorder = 3)
+  plt.semilogx(period,pownorth,linestyle='-',color=vpldbl,marker='None',lw=1.5,label='Ice height (65$^{\circ}$ N)')
+  plt.plot(eccxs,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+  plt.plot(eccxs1,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+  plt.plot(oblxs,ys,linestyle='--',color=vplpur,marker='None',lw=1,zorder=1)
+  plt.plot(coppxs0,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+  plt.plot(coppxs1,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+  plt.title('Power spectrum (normalized to peak)')
+  plt.legend(loc='upper right')
+  plt.xticks(visible = False)
+  plt.xlim(10000,3e5)  
+  if log:
+    plt.ylim(1e-10,10)
+    ax1.set_yscale('log')
+    plt.yticks([1e-9,1e-8,1e-6,1e-7,1e-5,1e-4,1e-3,1e-2,1e-1,1])
+  else:
+    plt.ylim(-0.2,1.2)
+    plt.yticks([0,.2,.4,.6,.8,1])
+
+  ax2=plt.subplot(3,1,2)
+  plt.semilogx(period,powtotal,linestyle='-',color='k',marker='None',lw=2,label='Global ice mass')
+#   plt.xlabel('Period [years]')
+  plt.plot(eccxs,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+  plt.plot(eccxs1,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+  plt.plot(oblxs,ys,linestyle='--',color=vplpur,marker='None',lw=1,zorder=1)
+  plt.plot(coppxs0,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+  plt.plot(coppxs1,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+  plt.legend(loc='upper right')
+  plt.xticks(visible = False)
+  plt.xlim(10000,3e5) 
+  if log:
+    plt.ylim(1e-10,10)
+    ax2.set_yscale('log')
+    plt.yticks([1e-9,1e-8,1e-6,1e-7,1e-5,1e-4,1e-3,1e-2,1e-1,1])
+  else:
+    plt.ylim(-0.2,1.2)
+    plt.yticks([0,.2,.4,.6,.8,1])
+  
+  ax3=plt.subplot(3,1,3)
+  plt.semilogx(period0,powobliq,linestyle='-',color=vplpur,marker='None',lw=2,label='Obliquity')
+  plt.semilogx(period0,poweccen,linestyle='-',color=vplred,marker='None',lw=2,label='Eccentricity')
+  plt.semilogx(period0,powcopp,linestyle='-',color=vpllbl,marker='None',lw=2,label='COPP')
+  plt.legend(loc='upper right')
+  plt.xlabel('Period [years]')
+  plt.xlim(10000,3e5)
+  if log:
+    plt.ylim(1e-11,10)
+    ax3.set_yscale('log')
+    plt.yticks([1e-10,1e-9,1e-8,1e-6,1e-7,1e-5,1e-4,1e-3,1e-2,1e-1,1])
+  else:
+    plt.ylim(-0.2,1.2)
+    plt.yticks([0,.2,.4,.6,.8,1])
+
+  if log:
+    plt.savefig('periodogram_'+dir+'_log.pdf')
+  else: 
+    plt.savefig('periodogram_'+dir+'.pdf')
+  plt.close()
