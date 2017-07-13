@@ -972,18 +972,27 @@ def ice_lats(time, lat, iceh):
 def ice_fft(plname,dir='.',log = False):
   out = vplot.GetOutput(dir)
 
-  icelatsouth, icelatnorth = ice_lats(out.p02.Time, out.p02.Latitude, out.p02.IceHeight)
-  n65 = np.where(np.abs(out.p02.Latitude[0]-65)==np.min(np.abs(out.p02.Latitude[0]-65)))[0]
-  s65 = np.where(np.abs(out.p02.Latitude[0]+65)==np.min(np.abs(out.p02.Latitude[0]+65)))[0]
-  icehsouth = out.p02.IceHeight[:,s65[0]]
-  icehnorth = out.p02.IceHeight[:,n65[0]]
+  ctmp = 0
+  for p in range(len(out.bodies)):
+      if out.bodies[p].name == plname:
+        body = out.bodies[p]
+        ctmp = 1
+      else:
+        if p == len(out.bodies)-1 and ctmp == 0:
+          raise Exception("Planet %s not found in folder %s"%(plname,dir[ii]))
+
+  icelatsouth, icelatnorth = ice_lats(body.Time, body.Latitude, body.IceHeight)
+  n65 = np.where(np.abs(body.Latitude[0]-65)==np.min(np.abs(body.Latitude[0]-65)))[0]
+  s65 = np.where(np.abs(body.Latitude[0]+65)==np.min(np.abs(body.Latitude[0]+65)))[0]
+  icehsouth = body.IceHeight[:,s65[0]]
+  icehnorth = body.IceHeight[:,n65[0]]
 
   #----ice data periodogramaphones----------------  
   #datasouth = icelatsouth[50:]-np.mean(icelatsouth[50:])
   #datanorth = icelatnorth[50:]-np.mean(icelatnorth[50:])
   datasouth = icehsouth[50:]-np.mean(icehsouth[50:])
   datanorth = icehnorth[50:]-np.mean(icehnorth[50:])
-  datatotal = out.p02.TotIceMass[50:] - np.mean(out.p02.TotIceMass[50:])
+  datatotal = body.TotIceMass[50:] - np.mean(body.TotIceMass[50:])
   
   freqs, powsouth = sig.periodogram(datasouth,fs=0.001,window='bartlett')
   freqs, pownorth = sig.periodogram(datanorth,fs=0.001,window='bartlett')
@@ -994,10 +1003,10 @@ def ice_fft(plname,dir='.',log = False):
   powtotal *= 1./np.max(powtotal)
   
   #----milankovitch data periodododoodoo-----------
-  dataobliq = out.p02.Obliquity - np.mean(out.p02.Obliquity)
-  dataeccen = out.p02.Eccentricity - np.mean(out.p02.Eccentricity)
-  COPP = out.p02.Eccentricity*np.sin(out.p02.Obliquity*np.pi/180.0) *np.sin((out.p02.ArgP+out.p02.LongA+out.p02.PrecA)*np.pi/180.0)  
-#   COPP = out.p02.Eccentricity *np.sin((out.p02.ArgP+out.p02.LongA+out.p02.PrecA)*np.pi/180.0)  
+  dataobliq = body.Obliquity - np.mean(body.Obliquity)
+  dataeccen = body.Eccentricity - np.mean(body.Eccentricity)
+  COPP = body.Eccentricity*np.sin(body.Obliquity*np.pi/180.0) *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0)  
+#   COPP = body.Eccentricity *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0)  
   datacopp = COPP - np.mean(COPP)
   
   freqs0, powobliq = sig.periodogram(dataobliq,fs=0.001,window='bartlett')
