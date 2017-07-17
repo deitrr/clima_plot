@@ -409,6 +409,7 @@ def clim_evol(plname,dir='.',xrange=False,orbit=False,show=True):
     f = open(dir[ii]+'/'+plname+'.in','r')
     lines = f.readlines()
     f.close()
+    pco2 = 0
     #pdb.set_trace()
     for i in range(len(lines)):
       if lines[i].split() != []:
@@ -984,14 +985,22 @@ def ice_fft(plname,dir='.',log = False):
   icelatsouth, icelatnorth = ice_lats(body.Time, body.Latitude, body.IceHeight)
   n65 = np.where(np.abs(body.Latitude[0]-65)==np.min(np.abs(body.Latitude[0]-65)))[0]
   s65 = np.where(np.abs(body.Latitude[0]+65)==np.min(np.abs(body.Latitude[0]+65)))[0]
+  norths = np.where(body.Latitude[0]>=0)[0]
+  souths = np.where(body.Latitude[0]<0)[0]
+
   icehsouth = body.IceHeight[:,s65[0]]
   icehnorth = body.IceHeight[:,n65[0]]
+
+  icemsouth = np.sum(body.IceMass[:,souths],1)
+  icemnorth = np.sum(body.IceMass[:,norths],1)
 
   #----ice data periodogramaphones----------------  
   #datasouth = icelatsouth[50:]-np.mean(icelatsouth[50:])
   #datanorth = icelatnorth[50:]-np.mean(icelatnorth[50:])
-  datasouth = icehsouth[50:]-np.mean(icehsouth[50:])
-  datanorth = icehnorth[50:]-np.mean(icehnorth[50:])
+#   datasouth = icehsouth[50:]-np.mean(icehsouth[50:])# 
+#   datanorth = icehnorth[50:]-np.mean(icehnorth[50:])
+  datasouth = icemsouth[50:]-np.mean(icemsouth[50:])
+  datanorth = icemnorth[50:]-np.mean(icemnorth[50:])
   datatotal = body.TotIceMass[50:] - np.mean(body.TotIceMass[50:])
   
   freqs, powsouth = sig.periodogram(datasouth,fs=0.001,window='bartlett')
@@ -1003,29 +1012,35 @@ def ice_fft(plname,dir='.',log = False):
   powtotal *= 1./np.max(powtotal)
   
   #----milankovitch data periodododoodoo-----------
-  dataobliq = body.Obliquity - np.mean(body.Obliquity)
-  dataeccen = body.Eccentricity - np.mean(body.Eccentricity)
-  COPP = body.Eccentricity*np.sin(body.Obliquity*np.pi/180.0) *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0)  
-#   COPP = body.Eccentricity *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0)  
-  datacopp = COPP - np.mean(COPP)
-  
-  freqs0, powobliq = sig.periodogram(dataobliq,fs=0.001,window='bartlett')
-  freqs0, poweccen = sig.periodogram(dataeccen,fs=0.001,window='bartlett')
-  freqs0, powcopp = sig.periodogram(datacopp,fs=0.001,window='bartlett')
-
-  powobliq *= 1./np.max(powobliq)
-  poweccen *= 1./np.max(poweccen)
-  powcopp *= 1./np.max(powcopp)
-  #-------------------------------------------
+  try:
+    dataobliq = body.Obliquity - np.mean(body.Obliquity)
+    dataeccen = body.Eccentricity - np.mean(body.Eccentricity)
+    COPP = body.Eccentricity*np.sin(body.Obliquity*np.pi/180.0) *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0)  
+  #   COPP = body.Eccentricity *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0)  
+    datacopp = COPP - np.mean(COPP)
+    orbitdata = 1
+  except:
+    orbitdata = 0
   
   period = 1./freqs
-  period0 = 1./freqs0
-  ys = [-0.2, 100]
-  eccxs = [1,1]*period0[poweccen ==np.max(poweccen)]
-  eccxs1 = [1,1]*period0[poweccen ==np.max(poweccen[period0<30000])]
-  oblxs = [1,1]*period0[powobliq == np.max(powobliq)]
-  coppxs0 = [1,1]*period0[powcopp == np.max(powcopp)]
-  coppxs1 = [1,1]*period0[powcopp == np.max(powcopp[powcopp<.99])]
+
+  if orbitdata:
+    freqs0, powobliq = sig.periodogram(dataobliq,fs=0.001,window='bartlett')
+    freqs0, poweccen = sig.periodogram(dataeccen,fs=0.001,window='bartlett')
+    freqs0, powcopp = sig.periodogram(datacopp,fs=0.001,window='bartlett')
+
+    powobliq *= 1./np.max(powobliq)
+    poweccen *= 1./np.max(poweccen)
+    powcopp *= 1./np.max(powcopp)
+    #-------------------------------------------
+  
+    period0 = 1./freqs0
+    ys = [-0.2, 100]
+    eccxs = [1,1]*period0[poweccen ==np.max(poweccen)]
+    eccxs1 = [1,1]*period0[poweccen ==np.max(poweccen[period0<30000])]
+    oblxs = [1,1]*period0[powobliq == np.max(powobliq)]
+    coppxs0 = [1,1]*period0[powcopp == np.max(powcopp)]
+    coppxs1 = [1,1]*period0[powcopp == np.max(powcopp[powcopp<.99])]
 #   import pdb;pdb.set_trace()
 
   fig = plt.figure(figsize=(10,8))
@@ -1033,11 +1048,12 @@ def ice_fft(plname,dir='.',log = False):
   ax1= plt.subplot(3,1,1)
   plt.semilogx(period,powsouth,linestyle='--',color=vplorg,marker='None',lw=2,label=r'Ice height (65$^{\circ}$ S)',zorder = 3)
   plt.semilogx(period,pownorth,linestyle='-',color=vpldbl,marker='None',lw=1.5,label='Ice height (65$^{\circ}$ N)')
-  plt.plot(eccxs,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
-  plt.plot(eccxs1,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
-  plt.plot(oblxs,ys,linestyle='--',color=vplpur,marker='None',lw=1,zorder=1)
-  plt.plot(coppxs0,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
-  plt.plot(coppxs1,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+  if orbitdata:
+    plt.plot(eccxs,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+    plt.plot(eccxs1,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+    plt.plot(oblxs,ys,linestyle='--',color=vplpur,marker='None',lw=1,zorder=1)
+    plt.plot(coppxs0,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+    plt.plot(coppxs1,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
   plt.title('Power spectrum (normalized to peak)')
   plt.legend(loc='upper right')
   plt.xticks(visible = False)
@@ -1053,11 +1069,12 @@ def ice_fft(plname,dir='.',log = False):
   ax2=plt.subplot(3,1,2)
   plt.semilogx(period,powtotal,linestyle='-',color='k',marker='None',lw=2,label='Global ice mass')
 #   plt.xlabel('Period [years]')
-  plt.plot(eccxs,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
-  plt.plot(eccxs1,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
-  plt.plot(oblxs,ys,linestyle='--',color=vplpur,marker='None',lw=1,zorder=1)
-  plt.plot(coppxs0,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
-  plt.plot(coppxs1,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+  if orbitdata:
+    plt.plot(eccxs,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+    plt.plot(eccxs1,ys,linestyle='--',color=vplred,marker='None',lw=1,zorder=1)
+    plt.plot(oblxs,ys,linestyle='--',color=vplpur,marker='None',lw=1,zorder=1)
+    plt.plot(coppxs0,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
+    plt.plot(coppxs1,ys,linestyle='--',color=vpllbl,marker='None',lw=1,zorder=1)
   plt.legend(loc='upper right')
   plt.xticks(visible = False)
   plt.xlim(10000,3e5) 
@@ -1070,9 +1087,10 @@ def ice_fft(plname,dir='.',log = False):
     plt.yticks([0,.2,.4,.6,.8,1])
   
   ax3=plt.subplot(3,1,3)
-  plt.semilogx(period0,powobliq,linestyle='-',color=vplpur,marker='None',lw=2,label='Obliquity')
-  plt.semilogx(period0,poweccen,linestyle='-',color=vplred,marker='None',lw=2,label='Eccentricity')
-  plt.semilogx(period0,powcopp,linestyle='-',color=vpllbl,marker='None',lw=2,label='COPP')
+  if orbitdata:
+    plt.semilogx(period0,powobliq,linestyle='-',color=vplpur,marker='None',lw=2,label='Obliquity')
+    plt.semilogx(period0,poweccen,linestyle='-',color=vplred,marker='None',lw=2,label='Eccentricity')
+    plt.semilogx(period0,powcopp,linestyle='-',color=vpllbl,marker='None',lw=2,label='COPP')
   plt.legend(loc='upper right')
   plt.xlabel('Period [years]')
   plt.xlim(10000,3e5)
@@ -1089,3 +1107,351 @@ def ice_fft(plname,dir='.',log = False):
   else: 
     plt.savefig('periodogram_'+dir+'.pdf')
   plt.close()
+  
+  
+  
+def ice_evol(plname,dir='.',log = False):
+  out = vplot.GetOutput(dir)
+
+  ctmp = 0
+  for p in range(len(out.bodies)):
+      if out.bodies[p].name == plname:
+        body = out.bodies[p]
+        ctmp = 1
+      else:
+        if p == len(out.bodies)-1 and ctmp == 0:
+          raise Exception("Planet %s not found in folder %s"%(plname,dir[ii]))
+
+  icelatsouth, icelatnorth = ice_lats(body.Time, body.Latitude, body.IceHeight)
+  n65 = np.where(np.abs(body.Latitude[0]-65)==np.min(np.abs(body.Latitude[0]-65)))[0]
+  s65 = np.where(np.abs(body.Latitude[0]+65)==np.min(np.abs(body.Latitude[0]+65)))[0]
+  norths = np.where(body.Latitude[0]>=0)[0]
+  souths = np.where(body.Latitude[0]<0)[0]
+
+  icehsouth = body.IceHeight[:,s65[0]]
+  icehnorth = body.IceHeight[:,n65[0]]
+  insol65n = body.AnnInsol[:,n65[0]]
+  insol65s = body.AnnInsol[:,s65[0]]
+  
+
+  icemsouth = np.sum(body.IceMass[:,souths],1)
+  icemnorth = np.sum(body.IceMass[:,norths],1)
+  
+  fig = plt.figure(figsize=(10,12))
+  fig.suptitle('ice mass (northern hemi)')
+  ax1 = plt.subplot(3,1,1)
+  plt.plot(body.Time,icemnorth,linestyle='-',color=vpldbl)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Obliquity,linestyle='--',color=vpllbl)
+  
+  ax1 = plt.subplot(3,1,2)
+  plt.plot(body.Time,icemnorth,linestyle='-',color=vpldbl)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Eccentricity,linestyle='--',color=vpllbl)
+  
+  
+  COPP = body.Eccentricity*np.sin(body.Obliquity*np.pi/180.0) *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0) 
+  
+  ax1 = plt.subplot(3,1,3)
+  plt.plot(body.Time,icemnorth,linestyle='-',color=vpldbl)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,COPP,linestyle='--',color=vpllbl)
+  
+  
+  fig = plt.figure(figsize=(10,12))
+  fig.suptitle('ice mass (southern hemi)')
+  ax1 = plt.subplot(3,1,1)
+  plt.plot(body.Time,icemsouth,linestyle='-',color=vplpur)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Obliquity,linestyle='--',color=vpllbl)
+  
+  ax1 = plt.subplot(3,1,2)
+  plt.plot(body.Time,icemsouth,linestyle='-',color=vpldbl)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Eccentricity,linestyle='--',color=vplpur)
+  
+  
+  COPP = body.Eccentricity*np.sin(body.Obliquity*np.pi/180.0) *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0) 
+  
+  
+  ax1 = plt.subplot(3,1,3)
+  plt.plot(body.Time,icemsouth,linestyle='-',color=vplpur)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,COPP,linestyle='--',color=vpllbl)
+  
+  
+  fig = plt.figure(figsize=(10,12))
+  fig.suptitle('ice mass (total)')
+  ax1 = plt.subplot(3,1,1)
+  plt.plot(body.Time,body.TotIceMass,linestyle='-',color=vplred)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Obliquity,linestyle='--',color=vpllbl)
+  
+  ax1 = plt.subplot(3,1,2)
+  plt.plot(body.Time,body.TotIceMass,linestyle='-',color=vplred)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Eccentricity,linestyle='--',color=vplpur)
+  
+  
+  COPP = body.Eccentricity*np.sin(body.Obliquity*np.pi/180.0) *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0) 
+  
+  ax1 = plt.subplot(3,1,3)
+  plt.plot(body.Time,body.TotIceMass,linestyle='-',color=vplred)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,COPP,linestyle='--',color=vpllbl)
+  
+  
+  fig = plt.figure(figsize=(10,12))
+  fig.suptitle('ice diff (n-s)')
+  ax1 = plt.subplot(3,1,1)
+  plt.plot(body.Time,icemnorth-icemsouth,linestyle='-',color=vplorg)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Obliquity,linestyle='--',color=vpllbl)
+  
+  ax1 = plt.subplot(3,1,2)
+  plt.plot(body.Time,icemnorth-icemsouth,linestyle='-',color=vplorg)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,body.Eccentricity,linestyle='--',color=vplpur)
+  
+  
+  COPP = body.Eccentricity*np.sin(body.Obliquity*np.pi/180.0) *np.sin((body.ArgP+body.LongA+body.PrecA)*np.pi/180.0) 
+  
+  ax1 = plt.subplot(3,1,3)
+  plt.plot(body.Time,icemnorth-icemsouth,linestyle='-',color=vplorg)
+  ax2 = ax1.twinx()
+  plt.plot(body.Time,COPP,linestyle='--',color=vpllbl)
+  
+  plt.show()
+  
+
+def comp2huybers(plname,dir='.',xrange=False,show=True):
+  """
+  Creates plots of insolation, temperature, albedo, ice mass,
+  and bed rock height over the length of the simulation
+  
+  Parameters
+  ----------
+  plname : string
+    The name of the planet with .Climate data
+    
+  Keyword Arguments
+  -----------------
+  dir : string
+    Directory of vplanet simulation (default = '.')
+  xrange : float tuple, list, or numpy array
+    Range of x-values (time) to restrict plot
+    (default = False (no restriction))
+  orbit : bool
+    Plot orbital data (obliquity, eccentricity, COPP)
+    (default = False)
+  show : bool
+    Show plot in Python (default = True)
+  
+  Output
+  ------
+  PDF format plot with name 'evol_<dir>.pdf'
+  
+  """
+  if not isinstance(dir,(list,tuple)):
+    dir = [dir]
+  
+  nfiles = len(dir)
+
+  if nfiles > 1 and orbit == True:
+    raise Exception("Error: cannot plot multiple files when orbit = True")
+
+  fig = plt.figure(figsize=(8,12))
+
+  fig.subplots_adjust(wspace=0.3,top=0.9)
+
+  for ii in np.arange(nfiles):
+    out = vplot.GetOutput(dir[ii])
+    
+    #pdb.set_trace()
+  
+    ctmp = 0
+    for p in range(len(out.bodies)):
+      if out.bodies[p].name == plname:
+        body = out.bodies[p]
+        ctmp = 1
+      else:
+        if p == len(out.bodies)-1 and ctmp == 0:
+          raise Exception("Planet %s not found in folder %s"%(plname,dir[ii]))
+  
+    try:
+      ecc = body.Eccentricity
+    except:
+      ecc = np.zeros_like(body.Time)+getattr(out.log.initial,plname).Eccentricity
+    
+    try:
+      inc = body.Inc
+    except:
+      inc = np.zeros_like(body.Time)
+    
+    try:
+      obl = body.Obliquity
+    except:
+      obltmp = getattr(out.log.initial,plname).Obliquity
+      if obltmp.unit == 'rad':
+        obltmp *= 180/np.pi
+      obl = np.zeros_like(body.Time)+obltmp
+
+    f = open(dir[ii]+'/'+plname+'.in','r')
+    lines = f.readlines()
+    f.close()
+    pco2 = 0
+    #pdb.set_trace()
+    for i in range(len(lines)):
+      if lines[i].split() != []:
+        if lines[i].split()[0] == 'dRotPeriod':
+          P = -1*np.float(lines[i].split()[1]) 
+        if lines[i].split()[0] == 'dSemi':
+          semi = np.float(lines[i].split()[1]) 
+          if semi < 0:
+            semi *= -1
+        if lines[i].split()[0] == 'dpCO2':
+          pco2 = np.float(lines[i].split()[1])
+
+    try:
+      longp = (body.ArgP + body.LongA + body.PrecA)*np.pi/180.0
+    except:
+      longp = body.PrecA*np.pi/180.0
+    
+    esinv = ecc*np.sin(longp)#*np.sin(obl*np.pi/180.)
+    
+    # titlestr = []
+#     titlestr.append(r'$a = %f, pCO_2 = %f$'%(semi,pco2))
+#     titlestr.append(r'$e_0 = %f, i_0 = %f^{\circ}, \psi_0 = %f^{\circ}, P_{rot} = %f$ d'%(ecc[0],inc[0],obl[0],P))
+    fig.subplots_adjust(wspace=0.3)
+
+    lats = np.unique(body.Latitude)
+    nlats = len(lats)
+    ntimes = len(body.Time)
+    
+    # plot temperature
+    temp = np.reshape(body.TempLat,(ntimes,nlats))
+
+    ax1 = plt.subplot(4,1,4)
+    pos = ax1.figbox.get_points()
+    c = plt.contour(body.Time,lats[lats>60],temp.T[lats>60],cmap='jet')
+    plt.ylabel('Latitude')
+    plt.title(r'Surface Temp [$^{\circ}$C]')
+    plt.ylim(60,85)
+    plt.yticks([60,70,80])
+    if xrange == False:
+      left = 0
+    else:
+      left = xrange[0]
+#     plt.text(left,140,'\n'.join(titlestr),fontsize=20) 
+    if xrange:
+      plt.xlim(xrange)
+    plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
+  
+# plot ice accumulation
+#     alb = np.reshape(body.AlbedoLat,(ntimes,nlats))
+#     if orbit == True:
+#       ax2 = plt.subplot(4,2,3)
+#     else:
+#       ax2 = plt.subplot(5,nfiles,ii+2*nfiles+1)
+#     pos = ax2.figbox.get_points()
+#     c = plt.contourf(body.Time,lats,alb.T,cmap='Blues_r')
+#     plt.ylabel('Latitude')
+#     plt.title('Albedo (TOA)')
+#     plt.ylim(-90,90)
+#     plt.yticks([-60,-30,0,30,60])
+#     if xrange:
+#       plt.xlim(xrange)
+#     plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
+  
+
+    # plot ice height
+    ice = np.reshape(body.IceHeight+body.BedrockH,(ntimes,nlats))
+
+    ax3 = plt.subplot(4,1,3)
+    pos = ax3.figbox.get_points()
+#     pdb.set_trace()
+    c = plt.contour(body.Time,lats[lats>60],ice.T[lats>60,:],cmap='jet')
+    plt.ylabel('Latitude')
+    plt.title('Ice sheet height [m]')
+    plt.ylim(60,85)
+  #   plt.xlim(0,2e6)
+    plt.yticks([60,70,80])
+    if xrange:
+      plt.xlim(xrange)
+    plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
+    # ax3p = ax3.twinx()
+  #   plt.plot(body.Time,esinv,linestyle = 'solid',marker='None',color='salmon',linewidth=2)
+  
+
+# plot bedrock
+#     brock = np.reshape(body.BedrockH,(ntimes,nlats))
+#     if orbit == True:
+#       ax4 = plt.subplot(4,2,7)
+#     else:
+#       ax4 = plt.subplot(5,nfiles,ii+4*nfiles+1)
+#     pos = ax4.figbox.get_points()
+#     c = plt.contourf(body.Time,lats,brock.T,cmap='Reds_r')
+#     plt.ylabel('Latitude')
+#     plt.title('Bedrock height [m]')
+#     plt.ylim(-90,90)
+#     plt.yticks([-60,-30,0,30,60])
+#     plt.xlabel('Time [years]')
+#     if xrange:
+#       plt.xlim(xrange)
+#     plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
+  
+
+    # plot insolation
+#     insol = np.reshape(body.AnnInsol,(ntimes,nlats))
+#     if orbit == True:
+#       ax5 = plt.subplot(4,2,2)
+#     else:
+#       ax5 = plt.subplot(5,nfiles,ii+nfiles+1)
+#     pos = ax5.figbox.get_points()
+#     c = plt.contourf(body.Time,lats,insol.T,cmap='plasma')
+#     plt.ylabel('Latitude')
+#     plt.title(r'Annual average insolation [w/m$^2$]')
+#     plt.ylim(-90,90)
+#     plt.yticks([-60,-30,0,30,60])
+#     if xrange:
+#       plt.xlim(xrange)
+#     plt.colorbar(c,cax=plt.axes([pos[1,0]+0.01,pos[0,1],0.01,pos[1,1]-pos[0,1]]))
+
+#     if orbit == True:
+      #obliquity
+    plt.subplot(4,1,2)
+    plt.plot(body.Time,obl,linestyle = 'solid',marker='None',color='darkblue',linewidth =2)
+    plt.ylabel('Obliquity')
+    if xrange:
+      plt.xlim(xrange)
+
+    #eccentricity
+  #   plt.subplot(4,2,6)
+#       plt.plot(body.Time,ecc,linestyle = 'solid',marker='None',color='darkorchid',linewidth =2)
+#       plt.ylabel('Eccentricity')
+#       if xrange:
+#         plt.xlim(xrange)
+
+    #e sin(obl) sin varpi
+    plt.subplot(4,1,1)
+    plt.plot(body.Time,esinv,linestyle = 'solid',marker='None',color='salmon',linewidth=2)
+    plt.ylabel('CPP')
+    plt.xlabel('Time [years]')
+    if xrange:
+      plt.xlim(xrange)
+
+    if dir[ii] == '.':
+      dir[ii] = 'cwd'
+  
+  #fig.suptitle('\n'.join(titlestr),fontsize=20) 
+  
+  if xrange:
+    sfile = 'comp2huy_'+'_'.join(dir)+'_%d_%d.pdf'%(xrange[0],xrange[1])
+  else:
+    sfile = 'comp2huy_'+'_'.join(dir)+'.pdf'
+  plt.savefig(sfile)
+
+  if show:
+    plt.show()
+  else:
+    plt.close()
