@@ -1089,3 +1089,64 @@ def ice_fft(plname,dir='.',log = False):
   else: 
     plt.savefig('periodogram_'+dir+'.pdf')
   plt.close()
+  
+  
+  
+def ice_video(plname,dir='.'):
+  if not isinstance(dir,(list,tuple)):
+    dir = [dir]
+  
+  nfiles = len(dir)
+
+  if nfiles > 1 and orbit == True:
+    raise Exception("Error: cannot plot multiple files when orbit = True")
+  
+
+
+  for ii in np.arange(nfiles):
+    out = vplot.GetOutput(dir[ii])
+    
+    #pdb.set_trace()
+  
+    ctmp = 0
+    for p in range(len(out.bodies)):
+      if out.bodies[p].name == plname:
+        body = out.bodies[p]
+        ctmp = 1
+      else:
+        if p == len(out.bodies)-1 and ctmp == 0:
+          raise Exception("Planet %s not found in folder %s"%(plname,dir[ii]))
+  
+  os.system('mkdir '+dir[0]+'/ice_frames')
+  
+  max = np.max(body.IceHeight+body.BedrockH)
+  min = np.min(body.BedrockH)
+  for i in np.arange(len(body.Time)):
+    
+    fig = plt.figure(figsize=(10,5))
+    fig.subplots_adjust(wspace=0.3)
+    plt.subplot(1,2,1)
+    plt.plot(body.Latitude[i],body.IceHeight[i]+body.BedrockH[i],color=vpllbl)
+    plt.plot(body.Latitude[i],body.BedrockH[i],color=vplred)
+    
+    plt.xlabel('Height [m]')
+    plt.ylabel('Latitude (deg)')
+    plt.xlim(-90,-40)
+    plt.ylim(min,max)
+    plt.text(-70,0.95*max,'Time=%#.2f year'%body.Time[i])
+    
+    plt.subplot(1,2,2)
+    plt.plot(body.Latitude[i],body.IceHeight[i]+body.BedrockH[i],color=vpllbl)
+    plt.plot(body.Latitude[i],body.BedrockH[i],color=vplred)
+    
+    plt.xlabel('Height [m]')
+    plt.ylabel('Latitude (deg)')
+    plt.xlim(40,90)
+    plt.ylim(min,max)
+#     plt.text(-20,0.95*max,'Time=%#.2f year'%body.Time[i])
+    
+    plt.savefig(dir[0]+'/ice_frames/frame%05d.png'%i)
+    plt.close()
+
+
+  
